@@ -1,8 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { CheckCircle, File } from "lucide-react";
-import { InfoCard } from "./_components/info-card";
 import Map from "../../_components/map-item";
 import { db } from "@/lib/db";
 
@@ -23,11 +18,18 @@ export default async function Home() {
     }
   });
 
+  const balizas = await db.baliza.findMany({
+    orderBy: {
+        createdAt:"desc",
+    }
+  });
+
   return (
    <div className="">
        <Map
         aerialVehicles = {[...aerialVehicles]}
         terrestrialVehicles = {[...terrestrialVehicles]}
+        balizas = {[...balizas]}
        />
    </div>
   );

@@ -41,6 +41,21 @@ model TerrestrialVehicle {
   updatedAt DateTime @updatedAt
 }
 
+model Baliza {
+  id String @id @default(uuid())
+
+  type String @db.Text @default("baliza")
+
+  latitude Float  @default(39.43)
+  longitude Float @default(-0.39)
+
+  pressure Float
+  temperature Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 
 
 

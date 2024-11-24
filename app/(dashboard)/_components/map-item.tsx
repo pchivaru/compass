@@ -1,7 +1,7 @@
 "use client";
 import React, { useRef, useEffect, useState, act } from "react";
 import "./map.css";
-import { AerialVehicle, TerrestrialVehicle } from "@prisma/client";
+import { AerialVehicle, TerrestrialVehicle, Baliza } from "@prisma/client";
 import { cn } from "@/lib/utils";
 
 import Map from "@arcgis/core/Map.js";
@@ -10,28 +10,55 @@ import BasemapToggle from "@arcgis/core/widgets/BasemapToggle.js";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer.js";
 import Graphic from "@arcgis/core/Graphic.js";
 import "@arcgis/core/assets/esri/themes/light/main.css";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { Cross, Flame, Plane, Shield, X } from "lucide-react";
+import { Cross, Flame, MapPin, Plane, Shield, X } from "lucide-react";
+
 
 interface MapComponentProps {
   aerialVehicles: AerialVehicle[],
   terrestrialVehicles: TerrestrialVehicle[],
+  balizas: Baliza[]
 }
 
 const MapComponent = ({
   aerialVehicles,
-  terrestrialVehicles
+  terrestrialVehicles,
+  balizas
 }: MapComponentProps
 ) => {
   const videoRef1 = useRef(null);
   const videoRef2 = useRef(null);
   const mapDiv = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const [showPopup, setShowPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [activeSubwindow, setActiveSubwindow] = useState(1); // Default to Subwindow 1
+  const [vehicleTypePopup, setVehicleTypePopup] = useState("dron");
 
+  // Future implementation for KINEIS integration
+  /*const fetchInfo = async () => {try {
+    
+    const config = {
+      headers: { Authorization: `Bearer TOKEN` }
+    };
+
+    const response = await axios.get("https://verhaert.allthingstalk.io//device/{{HUONnBVQowuDKBT4YrczeK5g}}/asset/{{temperature}}",
+      config
+    );
+    
+    console.log("OK")
+    console.log(response)
+
+    } catch (error){
+    console.log("ERROR")
+    console.log(error)
+    }
+  };*/
+  
   // Handle changing the subwindow
   const handleSubwindowChange = (subwindowNumber) => {
     if (subwindowNumber === 1) {
@@ -62,7 +89,8 @@ const MapComponent = ({
     fire: true,
     cross: true,
     drone: true,
-    heliOnly: true, // New state for the helicopter-only layer
+    heliOnly: true, // New state for the helicopter-only 
+    baliza: true
   });
 
   // References to GraphicsLayers
@@ -71,6 +99,7 @@ const MapComponent = ({
   const crossLayerRef = useRef<GraphicsLayer | null>(null);
   const droneLayerRef = useRef<GraphicsLayer | null>(null);
   const heliOnlyLayerRef = useRef<GraphicsLayer | null>(null); // New reference for the helicopter-only layer
+  const balizaLayerRef = useRef<GraphicsLayer | null>(null); // New reference for the helicopter-only layer
 
   useEffect(() => {
     if (mapDiv.current) {
@@ -91,6 +120,7 @@ const MapComponent = ({
       const crossLayer = new GraphicsLayer({ title: "Crosses" });
       const droneLayer = new GraphicsLayer({ title: "Drones" });
       const heliOnlyLayer = new GraphicsLayer({ title: "Helicopters Only" }); // New helicopter-only layer
+      const balizaLayer = new GraphicsLayer({ title: "Drones" });
 
       // Assign layers to refs
       heliLayerRef.current = heliLayer;
@@ -98,9 +128,10 @@ const MapComponent = ({
       crossLayerRef.current = crossLayer;
       droneLayerRef.current = droneLayer;
       heliOnlyLayerRef.current = heliOnlyLayer; // Assign new layer to ref
+      balizaLayerRef.current = balizaLayer;
 
       // Add layers to the map
-      map.addMany([heliLayer, fireLayer, crossLayer, droneLayer, heliOnlyLayer]);
+      map.addMany([heliLayer, fireLayer, crossLayer, droneLayer, heliOnlyLayer, balizaLayer]);
 
       const coordinates = [];
 
@@ -112,6 +143,11 @@ const MapComponent = ({
         coordinates.push({longitude: vehicle.longitude, latitude: vehicle.latitude, type: vehicle.type});
       });
 
+      balizas.forEach(vehicle => {
+        coordinates.push({longitude: vehicle.longitude, latitude: vehicle.latitude, type: vehicle.type});
+      });
+
+
       console.log(coordinates);
       // Array of coordinates with type
       
@@ -121,6 +157,7 @@ const MapComponent = ({
         fire: "/fire.png",
         cross: "/cross.png",
         drone: "/drone.png",
+        baliza: "/baliza.png"
       };
 
       // Add points to respective GraphicsLayers with assigned icons and attributes
@@ -160,6 +197,9 @@ const MapComponent = ({
           case "drone":
             droneLayer.add(pointGraphic);
             break;
+          case "baliza":
+            balizaLayer.add(pointGraphic);
+            break;
           default:
             break;
         }
@@ -175,6 +215,7 @@ const MapComponent = ({
               x: (offsetWidth+950)/2, // Adjusted for popup width
               y: (offsetHeight+450)/2, // Adjusted for popup height
             });
+            //setVehicleTypePopup("heli");
             setShowPopup(true);
           }
         });
@@ -214,6 +255,9 @@ const MapComponent = ({
     }
     if (heliOnlyLayerRef.current) {
       heliOnlyLayerRef.current.visible = layersVisibility.heliOnly; // Handle visibility for the new layer
+    }
+    if (balizaLayerRef.current) {
+      balizaLayerRef.current.visible = layersVisibility.baliza;
     }
   }, [layersVisibility]);
 
@@ -260,12 +304,20 @@ const MapComponent = ({
             <Plane className="h-6 w-6"/>
         </Button>
 
-        <Button onClick={() => handleLayerToggle("heli")}
+        <Button onClick={() => handleLayerToggle("heliOnly")}
                 size="sm" variant="default" className={cn(
                   "bg-slate-200 text-slate-800 border-slate-900 border-2 m-2 h-16 w-16",
-                  layersVisibility.heli  && "bg-slate-800 text-slate-100 m-2 h-16 w-16"
+                  layersVisibility.heliOnly  && "bg-slate-800 text-slate-100 m-2 h-16 w-16"
               )}>
             <Shield className="h-6 w-6"/>
+        </Button>
+
+        <Button onClick={() => handleLayerToggle("baliza")}
+                size="sm" variant="default" className={cn(
+                  "bg-slate-200 text-slate-800 border-slate-900 border-2 m-2 h-16 w-16",
+                  layersVisibility.baliza  && "bg-slate-800 text-slate-100 m-2 h-16 w-16"
+              )}>
+            <MapPin className="h-6 w-6"/>
         </Button>
 
         </div>
