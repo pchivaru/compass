@@ -1,21 +1,13 @@
 "use client";
 
-import { usePathname} from "next/navigation";
-
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
-import Link from "next/link";
-import { SearchInput } from "./search-input";
-import { FcRating } from "react-icons/fc";
-import { Badge } from "./ui/badge";
-import Image from "next/image";
-
-
 interface NavbarRoutesProps {
+    numAerial: number,
+    numTerrestrial: number
 }
 
 export const NavbarRoutes = ({
-
+    numAerial,
+    numTerrestrial
 }: NavbarRoutesProps) => {
 
     return (
@@ -25,7 +17,7 @@ export const NavbarRoutes = ({
                     Aerial units:
                 </b>
                 <p>
-                    0
+                    {numAerial}
                 </p>
             </div>
             <div className="space-x-1 flex">
@@ -33,7 +25,7 @@ export const NavbarRoutes = ({
                     Terrestrial units:
                 </b>
                 <p>
-                    0
+                    {numTerrestrial}
                 </p>
             </div>
         </div>
